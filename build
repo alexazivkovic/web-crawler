@@ -1,0 +1,155 @@
+#!/bin/bash
+
+help() {
+    cat <<EOF
+Usage: ./build [OPTIONS]
+
+Builds the project using CMake with various options such as Debug/Release modes,
+optional testing, code coverage, installation, and execution.
+
+Available Options:
+
+  --run [args]        Build (if needed) and run the compiled executable.
+                      Any arguments after this will be passed to the program.
+                      Example: ./build --run --flag1 value
+
+  --install           Build (if needed) and run 'cmake --install'.
+  --prefix DIR        Specify installation prefix (default: /usr/local).
+                      Must be used together with --install.
+
+  --release           Perform a Release build (default is Debug).
+  --debug             Perform a Debug build.
+
+  --clean             Remove the entire build directory before building.
+                      Example: ./build --clean --debug
+
+  --test              Build and run tests using Criterion.
+                      Requires tests to be defined in CMakeLists.txt.
+
+  --cov               Generate code coverage report using lcov/genhtml.
+                      Implies Debug build. Coverage report will be saved in
+                      ./cov_html/index.html and opened automatically if possible.
+
+  --help, -h          Show this help message and exit.
+
+Examples:
+  ./build --debug
+  ./build --clean --test
+  ./build --release --install --prefix /opt/myapp
+  ./build --run arg1 arg2
+  ./build --test --cov
+
+EOF
+}
+
+build_type="Debug"
+run=0
+install=0
+clean=0
+coverage=0
+test=0
+prefix="/usr/local"
+run_args=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --run)
+        run=1
+        shift
+        run_args=("$@")
+        break
+        ;;
+    --install)
+        install=1
+        ;;
+    --prefix)
+        prefix="$2"
+        shift
+        ;;
+    --release)
+        build_type="Release"
+        ;;
+    --debug)
+        build_type="Debug"
+        ;;
+    --clean)
+        clean=1
+        ;;
+    --cov)
+        coverage=1
+        ;;
+    --test)
+        test=1
+        ;;
+    --help | -h)
+        help
+        exit 0
+        ;;
+    *)
+        echo "Unknown option $1"
+        help
+        exit 1
+        ;;
+    esac
+    shift
+done
+
+root_dir=$(pwd)
+build_dir="out/$build_type"
+exe_name=$(basename "$root_dir")
+generator="Unix Makefiles"
+
+if ((clean)); then
+    rm -rf "$build_dir" && echo "✓ Cleaned $build_dir"
+fi
+
+if ((coverage)); then
+    find "$build_dir" -name '*.gcda' -delete
+    find "$build_dir" -name '*.gcno' -delete
+    rm -f coverage.info
+fi
+
+if ((coverage)); then
+    build_type="Debug"
+fi
+
+cmake_extra=""
+((test)) && cmake_extra="$cmake_extra -DBUILD_TESTS=ON"
+((coverage)) && cmake_extra="$cmake_extra -DCOVERAGE=ON"
+
+if [[ ! -f "$build_dir/CMakeCache.txt" ]]; then
+    cmake -B "$build_dir" -G "$generator" \
+        -DCMAKE_BUILD_TYPE="$build_type" \
+        ${cmake_extra} \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+fi
+cmake --build "$build_dir"
+
+if ((install)); then
+    cmake --install "$build_dir" --prefix "$prefix"
+fi
+
+if ((run)); then
+    exe_path="$build_dir/$exe_name"
+    [[ -x "$exe_path" ]] || exe_path=$(find "$build_dir" -maxdepth 2 -type f -perm -111 -name "$exe_name" | head -n1)
+    if [[ -z "$exe_path" ]]; then
+        echo "Cannot find executable '$exe_name' in $build_dir"
+        exit 1
+    fi
+    exec "$exe_path" "${run_args[@]}"
+fi
+
+if ((test)); then
+    echo "Running Criterion tests..."
+    ctest --test-dir "$build_dir" --output-on-failure
+fi
+
+if ((coverage)); then
+    lcov --capture --directory "$build_dir" --output-file coverage.info --ignore-errors inconsistent
+    lcov --remove coverage.info '/usr/*' --output-file coverage.info
+    genhtml coverage.info --output-directory cov_html >/dev/null
+    echo "Coverage HTML in $(pwd)/cov_html/index.html"
+    if command -v xdg-open >/dev/null; then
+        xdg-open cov_html/index.html >/dev/null 2>&1 &
+    fi
+fi

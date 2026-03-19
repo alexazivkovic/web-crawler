@@ -1,0 +1,37 @@
+# === Compiled Object Files ===
+*.o
+*.obj
+
+# === Precompiled Headers ===
+*.gch
+*.pch
+
+# === Compiled Static Libraries ===
+*.lib
+*.a
+
+# === Compiled Dynamic Libraries ===
+*.so
+*.so.*
+*.dll
+*.dylib
+
+# === Executables ===
+*.exe
+*.out
+*.app
+*.bin
+
+# === CMake Files ===
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+build/
+out/
+compile_commands.json
+
+# === Logs ===
+*.log
+
+
