@@ -79,7 +79,10 @@ done
 
 root_dir=$(pwd)
 build_dir="out/$build_type"
-exe_name=$(basename "$root_dir")
+exe_name=$(sed -nE 's/^[[:space:]]*project\(([A-Za-z0-9_.+-]+)([[:space:]].*)?\).*/\1/p' CMakeLists.txt | head -n1)
+if [[ -z "$exe_name" ]]; then
+    exe_name=$(basename "$root_dir")
+fi
 generator="Unix Makefiles"
 
 if ((clean)); then
