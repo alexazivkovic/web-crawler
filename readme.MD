@@ -78,7 +78,7 @@ Primer pokretanja:
 
 ```bash
 ./build --release
-./out/Release/konkurentno_template -t 8 -d 2 -p 100 -v https://example.com
+./out/Release/web-crawler -t 8 -d 2 -p 100 -v https://example.com
 ```
 
 ### CLI opcije
@@ -109,7 +109,7 @@ broj jedinstvenih posećenih URL-ova i vreme izvršavanja.
 
 ```bash
 ./build --debug
-./out/Debug/konkurentno_template_tests --verbose
+./out/Debug/web-crawler-tests --verbose
 ```
 
 (Testovi se build-uju samo ako je Criterion instaliran - videti sekciju
