@@ -109,7 +109,7 @@ broj jedinstvenih posećenih URL-ova i vreme izvršavanja.
 
 ```bash
 ./build --debug
-./out/Debug/web-crawler-tests --verbose
+./out/Release/web-crawler-tests --verbose
 ```
 
 (Testovi se build-uju samo ako je Criterion instaliran - videti sekciju
